@@ -4,9 +4,15 @@ u-motasimfuad-have-you-tried-turning-it-off-154a938b.
 
 A tiny program: it writes exactly one funny line — a hopeless tech
 support agent's new plan, hatched together with a desperate customer —
-to /output/entry.txt. Pure Python standard library, no network access,
-fully deterministic: the grader runs it twice and both runs must
-produce the same bytes.
+to entry.txt inside the output directory. Pure Python standard
+library, no network access, fully deterministic: the grader runs it
+twice and both runs must produce the same bytes.
+
+The output directory comes from the MAKEFUN_OUTPUT_DIR environment
+variable and defaults to /output when the variable is not set, so the
+grader can point the program at a different directory without
+changing the code; the same directory is used for both the write and
+the read-back verification.
 
 The line is locked. It won a head-to-head final against the strongest
 rival lines in a field of 1,927 entries, on the judge's five criteria
@@ -22,6 +28,11 @@ here", the classic blame-dodging sentence, now spoken by both of them.
 """
 
 import os
+
+# Output directory: read from MAKEFUN_OUTPUT_DIR so the grader can
+# run the program against a different directory; /output is the
+# default when the variable is not set.
+OUTPUT_DIR = os.environ.get("MAKEFUN_OUTPUT_DIR", "/output")
 
 # The locked line: one line, 123 characters.
 LINE = "Okay, new plan: we both turn it off, we both say nothing, and when they ask, we both say it was like that when we got here."
@@ -60,18 +71,19 @@ def main() -> None:
     if not is_valid_line(LINE):
         raise SystemExit("line fails the one-line, 1-to-199-characters rule")
 
-    os.makedirs("/output", exist_ok=True)
-    with open("/output/entry.txt", "w", encoding="utf-8") as f:
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    entry_path = os.path.join(OUTPUT_DIR, "entry.txt")
+    with open(entry_path, "w", encoding="utf-8") as f:
         f.write(LINE + "\n")
 
     # Read-back verification: re-read what was just written and fail
     # loudly if the file on disk is not byte-for-byte the line plus
     # one trailing newline. A silent short write or encoding slip
     # must never reach the grader as a valid-looking run.
-    with open("/output/entry.txt", "r", encoding="utf-8") as f:
+    with open(entry_path, "r", encoding="utf-8") as f:
         written = f.read()
     assert written == LINE + "\n", (
-        "read-back mismatch: /output/entry.txt does not match the line"
+        f"read-back mismatch: {entry_path} does not match the line"
     )
 
 
